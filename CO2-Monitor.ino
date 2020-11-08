@@ -3,6 +3,7 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include "esp_system.h"
 #include <secrets.h>
 
 // ---------- PINS ----------
@@ -20,7 +21,8 @@ int brightness = 20;
 const char* wifi_ssid = SSIDSB;
 const char* wifi_wpa2 = WPA2SB;
 #define UNIQIDMAXLENGTH 30
-const char* mqttServer = "jetson-4-3"; //mqtt server
+//const char* mqttServer = "jetson-4-3"; //mqtt server
+const char* mqttServer = "192.168.178.43"; //mqtt server
 const uint32_t mqttConnectionCheckInterval = 3000;
 const uint32_t wifiConnectionCheckInterval = 3000;
 
@@ -50,18 +52,24 @@ uint32_t lastUpdate = 0;
 uint32_t lastMqttConnectionCheck = 0;
 uint32_t lastWifiConnectionCheck = 0;
 
+// ---------- Watchdog ----------
+const int wdtTimeout = 10000;  //time in ms to trigger the watchdog
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("Stared Setup");
 
+  setupWatchdog();
+
   setupC2OSensor();
 
   setupLeds();
 
+  handleWatchdog();
   setupWifi();
 
+  handleWatchdog();
   setupMQTT();
 
   Serial.println("Finished Setup");
@@ -69,6 +77,8 @@ void setup()
 
 void loop()
 {
+  handleWatchdog();
+
   if ((WiFi.status() != WL_CONNECTED) && (millis() - lastWifiConnectionCheck > wifiConnectionCheckInterval)) {
     maintainWifi();
   }
