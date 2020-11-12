@@ -14,6 +14,8 @@ void setupWatchdog() {
   timerAttachInterrupt(timer, &resetModule, true);  //attach callback
   timerAlarmWrite(timer, wdtTimeout * 1000, false); //set time in us
   timerAlarmEnable(timer);                          //enable interrupt
+  
+  handleWatchdog(); //reset Watchdog
 }
 
 void maintainWifi() {
@@ -26,6 +28,8 @@ void maintainWifi() {
 }
 
 void setupWifi() {
+  handleWatchdog();
+
   WiFi.mode(WIFI_STA);
 
   WiFi.begin(wifi_ssid, wifi_wpa2);
@@ -51,7 +55,8 @@ void setupWifi() {
 }
 
 void setupMQTT() {
-  Serial.println("Connected to WiFi");
+  handleWatchdog();
+  
   client.setServer(mqttServer, 1883);
 
   int retryCounter = 0;

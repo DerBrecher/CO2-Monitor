@@ -1,10 +1,15 @@
+#include <esp_system.h>
 #include <MHZ19.h>
 #include <NeoPixelBus.h>
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
-#include "esp_system.h"
 #include <secrets.h>
+
+
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
 
 // ---------- PINS ----------
 #define RX_PIN 16
@@ -41,6 +46,9 @@ const uint32_t updateIntervalCO2 = 10000;
 
 int currentPPM = 400;
 
+// ---------- BME280 Sensor ----------
+Adafruit_BME280 bme; // I2C
+
 // ---------- JSON ----------
 #define JSONSIZE 200
 
@@ -62,14 +70,14 @@ void setup()
 
   setupWatchdog();
 
+  setupBME280Sensor();
+
   setupC2OSensor();
 
   setupLeds();
 
-  handleWatchdog();
   setupWifi();
 
-  handleWatchdog();
   setupMQTT();
 
   Serial.println("Finished Setup");
@@ -85,7 +93,9 @@ void loop()
 
   if (millis() - lastUpdate > updateIntervalCO2) {
     lastUpdate = millis();
+    handleBME280Sensor();
     handleCO2Sensor();
+    sendSensorData();
     updateDisplay(currentPPM);
   }
 
