@@ -23,11 +23,12 @@ NeoPixelBus<NeoGrbFeature, NeoEsp32I2s1800KbpsMethod> strip(LED_COUNT, LED_PIN);
 int brightness = 20;
 
 // ---------- NETWORK ----------
-const char* wifi_ssid = SSIDSB;
-const char* wifi_wpa2 = WPA2SB;
+const char* wifi_ssid = SSIDHDS;
+const char* wifi_wpa2 = WPA2HDS;
 #define UNIQIDMAXLENGTH 30
+const char* mqttServer = "hope"; //mqtt server
 //const char* mqttServer = "jetson-4-3"; //mqtt server
-const char* mqttServer = "192.168.178.43"; //mqtt server
+//const char* mqttServer = "192.168.178.43"; //mqtt server
 const uint32_t mqttConnectionCheckInterval = 3000;
 const uint32_t wifiConnectionCheckInterval = 3000;
 
@@ -61,7 +62,7 @@ uint32_t lastMqttConnectionCheck = 0;
 uint32_t lastWifiConnectionCheck = 0;
 
 // ---------- Watchdog ----------
-const int wdtTimeout = 10000;  //time in ms to trigger the watchdog
+const int wdtTimeout = 20000;  //time in ms to trigger the watchdog
 
 void setup()
 {
@@ -88,6 +89,7 @@ void loop()
   handleWatchdog();
 
   if ((WiFi.status() != WL_CONNECTED) && (millis() - lastWifiConnectionCheck > wifiConnectionCheckInterval)) {
+    lastWifiConnectionCheck = millis();
     maintainWifi();
   }
 
