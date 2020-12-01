@@ -1,9 +1,14 @@
+#ifdef ESP32
 hw_timer_t *timer = NULL;
+#endif
 
 void handleWatchdog() {
+  #ifdef ESP32
   timerWrite(timer, 0);
+  #endif
 }
 
+#ifdef ESP32
 void IRAM_ATTR resetModule() {
   ets_printf("Watchdog timeout! Rebooting\n");
   esp_restart();
@@ -17,6 +22,7 @@ void setupWatchdog() {
   
   handleWatchdog(); //reset Watchdog
 }
+#endif
 
 void maintainWifi() {
   Serial.print("WiFi disconnected. Trying to reconnect to Wifi with SSID: ");
@@ -42,8 +48,14 @@ void setupWifi() {
 
   byte mac[6];
   WiFi.macAddress(mac);
+  #ifdef ESP32
   uniqID = String("ESP32-") + String(mac[0], HEX) + String(mac[1], HEX) + String(mac[2], HEX) + String(mac[3], HEX) + String(mac[4], HEX) + String(mac[5], HEX);
+  #endif
 
+  #ifdef ESP8266
+  uniqID = String("ESP8266-") + String(mac[0], HEX) + String(mac[1], HEX) + String(mac[2], HEX) + String(mac[3], HEX) + String(mac[4], HEX) + String(mac[5], HEX);
+  #endif
+  
   uniqID.toCharArray(uniqIDChar, UNIQIDMAXLENGTH);
 
   uniqTopic[0] = 47; // ASCI for "/"

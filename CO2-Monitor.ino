@@ -1,33 +1,54 @@
-#include <esp_system.h>
 #include <MHZ19.h>
 #include <NeoPixelBus.h>
 #include <ArduinoJson.h>
-#include <WiFi.h>
 #include <PubSubClient.h>
 #include <secrets.h>
-
-
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 
+#ifdef ESP32
+  #include <esp_system.h>
+  #include <WiFi.h>
+#endif
+
+#ifdef ESP8266
+  #include <ESP8266WiFi.h>
+  #include <SoftwareSerial.h>
+#endif
+
 // ---------- PINS ----------
-#define RX_PIN 16
-#define TX_PIN 17
-#define LED_PIN 18
+#ifdef ESP32
+  #define RX_PIN 16
+  #define TX_PIN 17
+  #define LED_PIN 18
+#endif
+
+#ifdef ESP8266
+  #define RX_PIN 14 // D5
+  #define TX_PIN 12 // D6
+  //LED PIN has to be RX(3) because of DMA
+  //SDA = D2(4) SCL = D1(5) because of Hardware I2C
+#endif
 
 // ---------- LEDS ----------
 #define LED_COUNT 4
 
-NeoPixelBus<NeoGrbFeature, NeoEsp32I2s1800KbpsMethod> strip(LED_COUNT, LED_PIN);
+#ifdef ESP32
+  NeoPixelBus<NeoGrbFeature, NeoEsp32I2s1800KbpsMethod> strip(LED_COUNT, LED_PIN);
+#endif
+#ifdef ESP8266
+  NeoPixelBus<NeoGrbFeature, NeoEsp8266Dma800KbpsMethod> strip(LED_COUNT);
+#endif
+
 int brightness = 20;
 
 // ---------- NETWORK ----------
-const char* wifi_ssid = SSIDHDS;
-const char* wifi_wpa2 = WPA2HDS;
+const char* wifi_ssid = SSIDSB;
+const char* wifi_wpa2 = WPA2SB;
 #define UNIQIDMAXLENGTH 30
-const char* mqttServer = "hope"; //mqtt server
-//const char* mqttServer = "jetson-4-3"; //mqtt server
+//const char* mqttServer = "hope"; //mqtt server
+const char* mqttServer = "jetson-4-3"; //mqtt server
 //const char* mqttServer = "192.168.178.43"; //mqtt server
 const uint32_t mqttConnectionCheckInterval = 3000;
 const uint32_t wifiConnectionCheckInterval = 3000;
@@ -42,7 +63,15 @@ PubSubClient client(espClient);
 
 
 // ---------- CO2 Sensor ----------
+#ifdef ESP32
 MHZ19 mhz(&Serial1);
+#endif
+
+#ifdef ESP8266
+SoftwareSerial ss(RX_PIN, TX_PIN);
+MHZ19 mhz(&ss);
+#endif
+
 const uint32_t updateIntervalCO2 = 10000;
 
 int currentPPM = 400;
@@ -69,7 +98,9 @@ void setup()
   Serial.begin(115200);
   Serial.println("Stared Setup");
 
+  #ifdef ESP32
   setupWatchdog();
+  #endif
 
   setupBME280Sensor();
 

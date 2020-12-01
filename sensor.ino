@@ -24,7 +24,12 @@ void handleBME280Sensor() {
 }
 
 void setupC2OSensor() {
+  #ifdef ESP32
   Serial1.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
+  #endif
+  #ifdef ESP8266
+  ss.begin(9600);
+  #endif
 
   //Serial.println("Calibrate Zero");
   //mhz.calibrateZero();
