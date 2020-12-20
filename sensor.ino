@@ -1,3 +1,8 @@
+void setupMisc() {
+  pinMode(CALIBRATE_MODE_PIN, INPUT_PULLUP);
+  pinMode(ENABLE_DISPLAY_PIN, INPUT_PULLUP);
+}
+
 void setupBME280Sensor() {
   Wire.begin();
 
@@ -24,34 +29,60 @@ void handleBME280Sensor() {
 }
 
 void setupC2OSensor() {
-  #ifdef ESP32
-  Serial1.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
-  #endif
-  #ifdef ESP8266
-  ss.begin(9600);
-  #endif
+  handleWatchdog();
 
-  //Serial.println("Calibrate Zero");
-  //mhz.calibrateZero();
-  //delay(10000);
-  //Serial.println("Done calibrating");
+#ifdef ESP32
+  Serial1.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
+#endif
+#ifdef ESP8266
+  ss.begin(9600);
+#endif
+
+  // ---------- ABS for CO2 ----------
+  if (true) {
+    Serial.println("Autobase line calibration deactivated");
+    mhz.setAutoCalibration(false);
+    delay(100);
+  } else {
+    Serial.println("Autobase line calibration activated");
+    mhz.setAutoCalibration(true);
+    delay(100);
+  }
+
+  if (digitalRead(CALIBRATE_MODE_PIN)) { // take old calibraion
+    Serial.println("MH-Z19 will take old CO2 calibration");
+    mhz19calibrated = true;
+    displayCalibrated();
+  } else { // start new calibration (takes 10 minutes)
+    Serial.println("Starting new zero point calibration for MH-Z19");
+    displayInCalibration();
+    // calibration takes place after MHZ19CALIBRATIONDELAY ms
+    // time is monitored in main loop
+  }
 }
 
 void handleCO2Sensor() {
-  MHZ19_RESULT response = mhz.retrieveData();
-  if (response == MHZ19_RESULT_OK)
-  {
-    currentPPM = mhz.getCO2();  //currentPPM is globally used
-    doc["co2ppm"] = currentPPM;
-    doc["tempCO2"] = mhz.getTemperature();
-    doc["accuracy"] = mhz.getAccuracy();
-    doc["minCO2"] = mhz.getMinCO2();
-
+  if (mhz19calibrated) { //MH-Z19 is calibrated
+    MHZ19_RESULT response = mhz.retrieveData();
+    if (response == MHZ19_RESULT_OK)
+    {
+      doc["co2ppm"] = mhz.getCO2();
+      doc["tempCO2"] = mhz.getTemperature();
+      doc["accuracy"] = mhz.getAccuracy();
+      doc["minCO2"] = mhz.getMinCO2();
+    }
+    else
+    {
+      Serial.print(F("Error, code: "));
+      Serial.println(response);
+    }
   }
-  else
-  {
-    Serial.print(F("Error, code: "));
-    Serial.println(response);
+  else { // we want a new calibration
+    if (millis() > MHZ19CALIBRATIONDELAY) { //wait until sensor has warmed up and settled.
+      Serial.println("Taking new CO2 calibration right now!");
+      mhz.calibrateZero();
+      mhz19calibrated = true;
+    }
   }
 }
 

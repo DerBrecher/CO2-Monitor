@@ -8,47 +8,49 @@
 #include <Adafruit_BME280.h>
 
 #ifdef ESP32
-  #include <esp_system.h>
-  #include <WiFi.h>
+#include <esp_system.h>
+#include <WiFi.h>
 #endif
 
 #ifdef ESP8266
-  #include <ESP8266WiFi.h>
-  #include <SoftwareSerial.h>
+#include <ESP8266WiFi.h>
+#include <SoftwareSerial.h>
 #endif
 
 // ---------- PINS ----------
 #ifdef ESP32
-  #define RX_PIN 16
-  #define TX_PIN 17
-  #define LED_PIN 18
+#define RX_PIN 16
+#define TX_PIN 17
+#define LED_PIN 18
 #endif
 
 #ifdef ESP8266
-  #define RX_PIN 14 // D5
-  #define TX_PIN 12 // D6
-  //LED PIN has to be RX(3) because of DMA
-  //SDA = D2(4) SCL = D1(5) because of Hardware I2C
+#define CALIBRATE_MODE_PIN 13 //D7
+#define ENABLE_DISPLAY_PIN 16 //D
+#define RX_PIN 14 // D5
+#define TX_PIN 12 // D6
+//LED PIN has to be RX(3) because of DMA
+//SDA = D2(4) SCL = D1(5) because of Hardware I2C
 #endif
 
 // ---------- LEDS ----------
 #define LED_COUNT 4
 
 #ifdef ESP32
-  NeoPixelBus<NeoGrbFeature, NeoEsp32I2s1800KbpsMethod> strip(LED_COUNT, LED_PIN);
+NeoPixelBus<NeoGrbFeature, NeoEsp32I2s1800KbpsMethod> strip(LED_COUNT, LED_PIN);
 #endif
 #ifdef ESP8266
-  NeoPixelBus<NeoGrbFeature, NeoEsp8266Dma800KbpsMethod> strip(LED_COUNT);
+NeoPixelBus<NeoGrbFeature, NeoEsp8266Dma800KbpsMethod> strip(LED_COUNT);
 #endif
 
 int brightness = 20;
 
 // ---------- NETWORK ----------
-const char* wifi_ssid = SSIDSB;
-const char* wifi_wpa2 = WPA2SB;
+const char* wifi_ssid = SSIDHDS;
+const char* wifi_wpa2 = WPA2HDS;
 #define UNIQIDMAXLENGTH 30
-//const char* mqttServer = "hope"; //mqtt server
-const char* mqttServer = "jetson-4-3"; //mqtt server
+const char* mqttServer = "hope"; //mqtt server
+//const char* mqttServer = "jetson-4-3"; //mqtt server
 //const char* mqttServer = "192.168.178.43"; //mqtt server
 const uint32_t mqttConnectionCheckInterval = 3000;
 const uint32_t wifiConnectionCheckInterval = 3000;
@@ -63,6 +65,8 @@ PubSubClient client(espClient);
 
 
 // ---------- CO2 Sensor ----------
+#define MHZ19CALIBRATIONDELAY 600000 //600000 for 10 minutes
+
 #ifdef ESP32
 MHZ19 mhz(&Serial1);
 #endif
@@ -74,7 +78,7 @@ MHZ19 mhz(&ss);
 
 const uint32_t updateIntervalCO2 = 10000;
 
-int currentPPM = 400;
+boolean mhz19calibrated = false;
 
 // ---------- BME280 Sensor ----------
 Adafruit_BME280 bme; // I2C
@@ -95,18 +99,22 @@ const int wdtTimeout = 20000;  //time in ms to trigger the watchdog
 
 void setup()
 {
+  delay(100);
   Serial.begin(115200);
+  delay(1);
   Serial.println("Stared Setup");
 
-  #ifdef ESP32
+#ifdef ESP32
   setupWatchdog();
-  #endif
+#endif
+
+  setupMisc();
+
+  setupLeds();
 
   setupBME280Sensor();
 
   setupC2OSensor();
-
-  setupLeds();
 
   setupWifi();
 
@@ -114,6 +122,8 @@ void setup()
 
   Serial.println("Finished Setup");
 }
+
+uint32_t lastMillis = 0;
 
 void loop()
 {
@@ -129,7 +139,7 @@ void loop()
     handleBME280Sensor();
     handleCO2Sensor();
     sendSensorData();
-    updateDisplay(currentPPM);
+    updateDisplay();
   }
 
   if (!client.connected() && (millis() - lastMqttConnectionCheck > mqttConnectionCheckInterval)) {
