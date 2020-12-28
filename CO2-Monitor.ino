@@ -9,7 +9,7 @@
 
 #ifdef ESP32
 #include <esp_system.h>
-#include <WiFi.h>
+#include <WiFi.h> 
 #endif
 
 #ifdef ESP8266
@@ -19,14 +19,17 @@
 
 // ---------- PINS ----------
 #ifdef ESP32
+#define CALIBRATE_MODE_PIN 19
+#define ENABLE_DISPLAY_PIN 23
 #define RX_PIN 16
 #define TX_PIN 17
 #define LED_PIN 18
+// SDA = 21; SCL = 22
 #endif
 
 #ifdef ESP8266
 #define CALIBRATE_MODE_PIN 13 //D7
-#define ENABLE_DISPLAY_PIN 16 //D
+#define ENABLE_DISPLAY_PIN 16 //D0
 #define RX_PIN 14 // D5
 #define TX_PIN 12 // D6
 //LED PIN has to be RX(3) because of DMA

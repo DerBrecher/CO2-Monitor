@@ -20,6 +20,15 @@ void setupBME280Sensor() {
     Serial.print("        ID of 0x60 represents a BME 280.\n");
     Serial.print("        ID of 0x61 represents a BME 680.\n");
   }
+
+  bme.setSampling(Adafruit_BME280::MODE_NORMAL,
+                  Adafruit_BME280::SAMPLING_X4,
+                  Adafruit_BME280::SAMPLING_X4,
+                  Adafruit_BME280::SAMPLING_X4,
+                  Adafruit_BME280::FILTER_OFF,
+                  Adafruit_BME280::STANDBY_MS_1000);
+                    
+  bme.setTemperatureCompensation(0); //needed because of self heating
 }
 
 void handleBME280Sensor() {
