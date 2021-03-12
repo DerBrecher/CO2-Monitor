@@ -40,10 +40,13 @@ void setupWifi() {
 
   WiFi.begin(wifi_ssid, wifi_wpa2);
 
-  while (WiFi.status() != WL_CONNECTED) {
+  for (int i = 0; i < 10; i++) {
     delay(500);
     Serial.print("trying to connect to Wifi with SSID: ");
     Serial.println(wifi_ssid);
+    if (WiFi.status() == WL_CONNECTED) {
+      break;
+    }
   }
 
   byte mac[6];
