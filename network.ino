@@ -40,7 +40,7 @@ void setupWifi() {
 
   WiFi.begin(wifi_ssid, wifi_wpa2);
 
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 20; i++) {
     delay(500);
     Serial.print("trying to connect to Wifi with SSID: ");
     Serial.println(wifi_ssid);
@@ -75,7 +75,7 @@ void setupMQTT() {
   client.setServer(mqttServer, 1883);
 
   int retryCounter = 0;
-  while (!client.connected() && retryCounter < 10) {
+  while (!client.connected() && retryCounter < 10 && WiFi.status() == WL_CONNECTED) {
     Serial.print(retryCounter);
     Serial.println(". try to connect to mqtt");
     connectMqtt();
